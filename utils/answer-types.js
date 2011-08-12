@@ -481,7 +481,7 @@ jQuery.extend( Khan.answerTypes, {
 
 	radio: function( solutionarea, solution ) {
 		// Without this we get numbers twice and things sometimes
-		var solutionText = jQuery( solution ).contents( ":not(.MathJax)" ).text();
+		var solutionText = jQuery( solution ).find( ".MathJax" ).remove().end().text();
 
 		var list = jQuery("<ul></ul>");
 		jQuery( solutionarea ).append(list);
@@ -589,14 +589,14 @@ jQuery.extend( Khan.answerTypes, {
 			}
 
 			ret.guess = jQuery.trim(
-				choice.closest("li").contents( ":not(.MathJax)" ).text() );
+				choice.closest("li").clone().find(".MathJax").remove().end().text() );
 
 			return choice.val() === "1";
 		};
 		ret.solution = jQuery.trim( solutionText );
 		ret.showGuess = function( guess ) {
 			var li = list.children().filter( function() {
-				return jQuery.trim( jQuery( this ).contents( ":not(.MathJax)" ).text() ) === guess;
+				return jQuery.trim( jQuery( this ).clone().find(".MathJax").remove().end().text() ) === guess;
 			} );
 			li.find( "input[name=solution]" ).prop( "checked", true );
 		};

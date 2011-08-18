@@ -227,9 +227,9 @@
 				var arr = [];
 				for( i = 0; i < numSides; i++ ){
 					arr.push( [ point[0] + radius * Math.cos( rotation + i * angle ), point[1] + radius * Math.sin( rotation + i * angle)] );
-					arr.push( [ point[0] + radius * Math.cos( rotation + (i + 1)  * angle ), point[1] + radius * Math.sin( rotation + (i + 1) * angle) ] ); 
+					arr.push( [ point[0] + radius * Math.cos( rotation + (i + 1)  * angle ), point[1] + radius * Math.sin( rotation + (i + 1) * angle) ] );
 				}
-				var p = this.path( arr );	
+				var p = this.path( arr );
 				return p;
 
 			},
@@ -439,14 +439,14 @@
 
 			jQuery.each( options, function( prop, val ) {
 
-				// allow options to be specified by a single number for shorthand if 
+				// allow options to be specified by a single number for shorthand if
 				// the horizontal and vertical components are the same
-				if ( prop !== "gridOpacity" && prop !== "range" 
+				if ( prop !== "gridOpacity" && prop !== "range"
 						&& typeof val === "number" ) {
 					options[ prop ] = [ val, val ];
 				}
 
-				// allow symmetric ranges to be specified by the absolute values 
+				// allow symmetric ranges to be specified by the absolute values
 				if ( prop === "range" ) {
 					if ( val.constructor === Array ) {
 						options[ prop ] = [ [ -val[0], val[0] ], [ -val[1], val[1] ] ];

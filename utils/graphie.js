@@ -449,7 +449,10 @@
 				// allow symmetric ranges to be specified by the absolute values
 				if ( prop === "range" ) {
 					if ( val.constructor === Array ) {
-						options[ prop ] = [ [ -val[0], val[0] ], [ -val[1], val[1] ] ];
+						// only do this symmetric range thing if we don't have nested arrays
+						if ( val[0].constructor !== Array ) {
+							options[ prop ] = [ [ -val[0], val[0] ], [ -val[1], val[1] ] ];
+						}
 					} else if ( typeof val === "number" ) {
 						options[ prop ] = [ [ -val, val ], [ -val, val ] ];
 					}
@@ -457,172 +460,177 @@
 
 			});
 
-			var range = options.range || [ [-10, 10], [-10, 10] ],
-				scale = options.scale || [ 20, 20 ],
-				grid = options.grid || true,
-				gridOpacity = options.gridOpacity || 0.1,
-				gridStep = options.gridStep || [ 1, 1 ],
-				axes = options.axes || true,
-				axisArrows = options.axisArrows || "",
-				ticks = options.ticks || true,
-				tickStep = options.tickStep || [ 2, 2 ],
-				tickLen = options.tickLen || [ 5, 5 ],
-				labels = options.labels || options.labelStep || false,
-				labelStep = options.labelStep || [ 1, 1 ],
-				unityLabels = options.unityLabels || false,
-				labelFormat = options.labelFormat || function(a) { return a; },
-				xLabelFormat = options.xLabelFormat || labelFormat,
-				yLabelFormat = options.yLabelFormat || labelFormat,
-				smartLabelPositioning = options.smartLabelPositioning != null ?
-					options.smartLabelPositioning : true;
+			options = jQuery.extend({
+				range: [ [-10, 10], [-10, 10] ],
+				scale: [ 20, 20 ],
+				grid: true,
+				gridOpacity: 0.1,
+				gridStep: [ 1, 1 ],
+				axes: true,
+				axisArrows: "",
+				ticks: true,
+				tickStep: [ 2, 2 ],
+				tickLen: [ 5, 5 ],
+				labels: options.labelStep || false,
+				labelStep: [ 1, 1 ],
+				unityLabels: false,
+				labelFormat: function(a) { return a; },
+				smartLabelPositioning: true
+			}, options);
 
-			if ( smartLabelPositioning ) {
-				var minusIgnorer = function( lf ) { return function( a ) {
-					return ( lf( a ) + "" ).replace( /-(\d)/g, "\\llap{-}$1" );
-				}; };
+			options = jQuery.extend({
+				xLabelFormat: options.labelFormat,
+				yLabelFormat: options.labelFormat
+			}, options);
 
-				xLabelFormat = minusIgnorer( xLabelFormat );
-				yLabelFormat = minusIgnorer( yLabelFormat );
-			}
+			with( options ) {
+				if ( smartLabelPositioning ) {
+					var minusIgnorer = function( lf ) { return function( a ) {
+						return ( lf( a ) + "" ).replace( /-(\d)/g, "\\llap{-}$1" );
+					}; };
 
-			this.init({
-				range: range,
-				scale: scale
-			});
+					xLabelFormat = minusIgnorer( xLabelFormat );
+					yLabelFormat = minusIgnorer( yLabelFormat );
+				}
 
-			// draw grid
-			if ( grid ) {
-				this.grid( range[0], range[1], {
-					stroke: "#000000",
-					opacity: gridOpacity,
-					step: gridStep
+				this.init({
+					range: range,
+					scale: scale
 				});
-			}
 
-			// draw axes
-			if ( axes ) {
-
-				// this is a slight hack until <-> arrowheads work
-				if ( axisArrows === "<->" || true ) {
-					this.style({
+				// draw grid
+				if ( grid ) {
+					this.grid( range[0], range[1], {
 						stroke: "#000000",
-						strokeWidth: 2,
-						arrows: "->"
-					}, function() {
-						this.path([ [ 0, 0 ], [ range[0][0], 0 ] ]);
-						this.path([ [ 0, 0 ], [ range[0][1], 0 ] ]);
-						this.path([ [ 0, 0 ], [ 0, range[1][0] ] ]);
-						this.path([ [ 0, 0 ], [ 0, range[1][1] ] ]);
+						opacity: gridOpacity,
+						step: gridStep
 					});
+				}
 
-				// also, we don't support "<-" arrows yet, but why you
-				// would want that on your graph is beyond me.
-				} else if ( axisArrows === "->" || axisArrows === "" ) {
-					this.style({
-						stroke: "#000000",
-						strokeWidth: 2,
-						arrows: axisArrows
-					}, function() {
-						this.path([ [ range[0][0], 0 ], [ range[0][1], 0 ] ]);
-						this.path([ [ 0, range[1][0] ], [ 0, range[1][1] ] ]);
-					});
+				// draw axes
+				if ( axes ) {
+
+					// this is a slight hack until <-> arrowheads work
+					if ( axisArrows === "<->" || true ) {
+						this.style({
+							stroke: "#000000",
+							strokeWidth: 2,
+							arrows: "->"
+						}, function() {
+							this.path([ [ 0, 0 ], [ range[0][0], 0 ] ]);
+							this.path([ [ 0, 0 ], [ range[0][1], 0 ] ]);
+							this.path([ [ 0, 0 ], [ 0, range[1][0] ] ]);
+							this.path([ [ 0, 0 ], [ 0, range[1][1] ] ]);
+						});
+
+					// also, we don't support "<-" arrows yet, but why you
+					// would want that on your graph is beyond me.
+					} else if ( axisArrows === "->" || axisArrows === "" ) {
+						this.style({
+							stroke: "#000000",
+							strokeWidth: 2,
+							arrows: axisArrows
+						}, function() {
+							this.path([ [ range[0][0], 0 ], [ range[0][1], 0 ] ]);
+							this.path([ [ 0, range[1][0] ], [ 0, range[1][1] ] ]);
+						});
+
+					}
 
 				}
 
+				// draw tick marks
+				if ( ticks ) {
+					this.style({
+						stroke: "#000000",
+						strokeWidth: 1
+					}, function() {
+
+						// horizontal axis
+						var step = gridStep[0] * tickStep[0],
+					 len = tickLen[0] / scale[1],
+					 start = range[0][0],
+					 stop = range[0][1];
+
+						for ( var x = step; x <= stop; x += step ) {
+							if ( x < stop || !axisArrows ) {
+								this.line( [ x, -len ], [ x, len ] );
+							}
+						}
+
+						for ( var x = -step; x >= start; x -= step ) {
+							if ( x > start || !axisArrows ) {
+								this.line( [ x, -len ], [ x, len ] );
+							}
+						}
+
+						// vertical axis
+						step = gridStep[1] * tickStep[1];
+						len = tickLen[1] / scale[0];
+						start = range[1][0];
+						stop = range[1][1];
+
+						for ( var y = step; y <= stop; y += step ) {
+							if ( y < stop || !axisArrows ) {
+								this.line( [ -len, y ], [ len, y ] );
+							}
+						}
+
+						for ( var y = -step; y >= start; y -= step ) {
+							if ( y > start || !axisArrows ) {
+								this.line( [ -len, y ], [ len, y ] );
+							}
+						}
+
+					});
+				}
+
+				// draw axis labels
+				if ( labels ) {
+					this.style({
+						stroke: "#000000"
+					}, function() {
+
+						// horizontal axis
+						var step = gridStep[0] * tickStep[0] * labelStep[0],
+							start = range[0][0],
+							stop = range[0][1];
+
+						// positive x-axis
+						for ( var x = step; x <= stop; x += step ) {
+							if ( x < stop || !axisArrows ) {
+								this.label( [ x, 0 ], xLabelFormat( x ), "below" );
+							}
+						}
+
+						// negative x-axis
+						for ( var x = -step * (unityLabels ? 1 : 2); x >= start; x -= step ) {
+							if ( x > start || !axisArrows ) {
+								this.label( [ x, 0 ], xLabelFormat( x ), "below" );
+							}
+						}
+
+						step = gridStep[1] * tickStep[1] * labelStep[1];
+						start = range[1][0];
+						stop = range[1][1];
+
+						// positive y-axis
+						for ( var y = step; y <= stop; y += step ) {
+							if ( y < stop || !axisArrows ) {
+								this.label( [ 0, y ], yLabelFormat( y ), "left" );
+							}
+						}
+
+						// negative y-axis
+						for ( var y = -step * (unityLabels ? 1 : 2); y >= start; y -= step ) {
+							if ( y > start || !axisArrows ) {
+								this.label( [ 0, y ], yLabelFormat( y ), "left" );
+							}
+						}
+
+					});
+				}
 			}
-
-			// draw tick marks
-			if ( ticks ) {
-				this.style({
-					stroke: "#000000",
-					strokeWidth: 1
-				}, function() {
-
-					// horizontal axis
-					var step = gridStep[0] * tickStep[0],
-				 len = tickLen[0] / scale[1],
-				 start = range[0][0],
-				 stop = range[0][1];
-
-					for ( var x = step; x <= stop; x += step ) {
-						if ( x < stop || !axisArrows ) {
-							this.line( [ x, -len ], [ x, len ] );
-						}
-					}
-
-					for ( var x = -step; x >= start; x -= step ) {
-						if ( x > start || !axisArrows ) {
-							this.line( [ x, -len ], [ x, len ] );
-						}
-					}
-
-					// vertical axis
-					step = gridStep[1] * tickStep[1];
-					len = tickLen[1] / scale[0];
-					start = range[1][0];
-					stop = range[1][1];
-
-					for ( var y = step; y <= stop; y += step ) {
-						if ( y < stop || !axisArrows ) {
-							this.line( [ -len, y ], [ len, y ] );
-						}
-					}
-
-					for ( var y = -step; y >= start; y -= step ) {
-						if ( y > start || !axisArrows ) {
-							this.line( [ -len, y ], [ len, y ] );
-						}
-					}
-
-				});
-			}
-
-			// draw axis labels
-			if ( labels ) {
-				this.style({
-					stroke: "#000000"
-				}, function() {
-
-					// horizontal axis
-					var step = gridStep[0] * tickStep[0] * labelStep[0],
-						start = range[0][0],
-						stop = range[0][1];
-
-					// positive x-axis
-					for ( var x = step; x <= stop; x += step ) {
-						if ( x < stop || !axisArrows ) {
-							this.label( [ x, 0 ], xLabelFormat( x ), "below" );
-						}
-					}
-
-					// negative x-axis
-					for ( var x = -step * (unityLabels ? 1 : 2); x >= start; x -= step ) {
-						if ( x > start || !axisArrows ) {
-							this.label( [ x, 0 ], xLabelFormat( x ), "below" );
-						}
-					}
-
-					step = gridStep[1] * tickStep[1] * labelStep[1];
-					start = range[1][0];
-					stop = range[1][1];
-
-					// positive y-axis
-					for ( var y = step; y <= stop; y += step ) {
-						if ( y < stop || !axisArrows ) {
-							this.label( [ 0, y ], yLabelFormat( y ), "left" );
-						}
-					}
-
-					// negative y-axis
-					for ( var y = -step * (unityLabels ? 1 : 2); y >= start; y -= step ) {
-						if ( y > start || !axisArrows ) {
-							this.label( [ 0, y ], yLabelFormat( y ), "left" );
-						}
-					}
-
-				});
-			}
-
 		};
 
 		return graphie;
